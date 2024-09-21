@@ -3,67 +3,98 @@ import sys
 from pymodbus.client import ModbusSerialClient
 from pymodbus import ExceptionResponse, FramerType, ModbusException, pymodbus_apply_logging_config
 
-_logger = logging.getLogger(__file__)
-_logger.setLevel("DEBUG")
+# activate the debugging logger
+pymodbus_apply_logging_config("INFO")
 
-# Create Client Object
 def set_up_serial_client(port, framer, baudrate, bytesize, parity, stopbits):
-    _logger.info("### Create client object")
+    # Create client Objetc
     client = ModbusSerialClient(port, framer, baudrate, bytesize, parity, stopbits)
     return client
 
 # Connect device, reconnect automatically
-def run_sync_serial_client(client, modbuscalls):
-    _logger.info("### Client starting")
-    try:
-        client.connect() 
-        if client.connect():
-            print("Connection established")
-            if modbuscalls:
+def run_sync_serial_client(client, modbuscalls, devices):
+    client.connect() 
+    if client.connect():
+        print("Connection established")
+        
+        measurements = []
+        for modbuscall, device in zip(modbuscalls, devices): 
+            if modbuscall:
                 print("Running Modbus calls")
-                modbuscalls(client)
-            client.close() 
-    except Exception:
-        raise(Exception)
+                responses = modbuscall(client, device)
+                measurements.append(responses)
+        client.close()
+        return measurements
+     
+    else:
+        print("Connection failed") 
         
 
 # Retrive information from devices
-def test_call(client):
-    _logger.info("### Run a few test calls")
+def read_belimo(client, device):
+    responses = {}
     try:
         # read_holding_registers(address, count, slave)
-        response = client.read_holding_registers(address=6, count=2, slave=36)
-        print(response.registers)
+        response = client.read_holding_registers(address=7, count=34, slave=device[0])
+        print(type(response))
     except ModbusException as exc:
-        _logger.error(f"ERROR: exception in pymodbus {exc}")
+        print(f"Received ModbusException({exc}) from library")
         raise(exc)
+
     if response.isError():
-        _logger.error("ERROR: Pymodbus returned an error!")
+        print(f"Received Modbus library error({response})")
 
-def get_outlet_temperatures(client):
-    try:
-        t_out_34 = client.read_holding_registers(address=6, count=2, slave=34)
-        t_out_23 = client.read_holding_registers(address=6, count=2, slave=23)
-        t_out_21 = client.read_holding_registers(address=6, count=2, slave=21)
-        t_out_36 = client.read_holding_registers(address=6, count=2, slave=36)
-    except ModbusException as exc:
-        _logger.error(f"ERROR: exception in pymodbus {exc}")
-        raise(exc)
-    if t_out_34.isError() or t_out_23.isError() or t_out_21.isError() or t_out_36.isError():
-        _logger.error("ERROR: Pymodbus returned an error!")
+    elif isinstance(response, ExceptionResponse):
+        print(f"Received Modbus library exception ({response})")
+        # THIS IS NOT A PYTHON EXCEPTION, but a valid modbus message
+
+    else:
+        responses[device[0]] = responses.get(device[0], response.registers)
     
-    print(t_out_34.registers, t_out_23.registers, t_out_21.registers, t_out_36.registers)
+    print(responses)
+    return responses
 
+# Retrive information from devices
+def read_zp_meters(client, devices):
+    responses = {}
+    for device in devices:
+        try:
+            # read_holding_registers(address, count, slave)
+            response = client.read_holding_registers(address=0, count=16, slave=device)
 
+        except ModbusException as exc:
+            print(f"Received ModbusException({exc}) from library")
+            raise(exc)
+
+        if response.isError():
+            print(f"Received Modbus library error({response})")
+
+        elif isinstance(response, ExceptionResponse):
+            print(f"Received Modbus library exception ({response})")
+            # THIS IS NOT A PYTHON EXCEPTION, but a valid modbus message
+
+        else:
+            responses[device] = responses.get(device, response.registers)
+
+    print(responses)                
+    return responses
+            
+    
+    
 def main():
-    test_client = set_up_serial_client(port="COM5", 
+    serial_client = set_up_serial_client(port="COM5", 
                                        framer=FramerType.RTU, 
                                        baudrate=9600, 
                                        bytesize=8, 
                                        parity="E", 
                                        stopbits=1)
     
-    run_sync_serial_client(test_client, test_call)
+    measurements = run_sync_serial_client(serial_client, 
+                                          [read_belimo, read_zp_meters], 
+                                          [[2], [34, 23, 21, 36]])
     
+
+    save_measurements(measurements)    
+
 if __name__ == "__main__":
     main()
