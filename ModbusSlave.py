@@ -1,5 +1,4 @@
-from pymodbus.client import ModbusSerialClient
-from pymodbus import ExceptionResponse, FramerType, ModbusException, pymodbus_apply_logging_config
+from pymodbus import ExceptionResponse, ModbusException
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
 
