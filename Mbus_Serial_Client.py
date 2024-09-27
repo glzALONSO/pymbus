@@ -2,6 +2,7 @@ from pymodbus.client import ModbusSerialClient
 from pymodbus import FramerType, pymodbus_apply_logging_config
 from ModbusSlave import ModbusSlave
 from inputimeout import inputimeout
+import time
 
 # activate the debugging logger only when an error occurs
 pymodbus_apply_logging_config("INFO")
@@ -198,8 +199,10 @@ def write_all_measurements_to_csv(res_files_names, measurements_list):
 
 
 if __name__ == "__main__":
-
 # ------------------------------- INITIAL SETUP --------------------------------------------------------
+    # Register the time at which the script started
+    start_time = time.time()
+    
     # Configure the Python Serial Client
     serial_client = set_up_serial_client(port="COM5", 
                                        framer=FramerType.RTU, 
@@ -276,18 +279,34 @@ if __name__ == "__main__":
     print(measurements_list)
     # write the measurements in its corresponding file
     write_all_measurements_to_csv(res_files_names, measurements_list)
+    # report the elapsed time since the script started
+    end_time = time.time()
+    print("Time since script started:", start_time - end_time)
     
+
     while True:
         try:
             user_input = inputimeout(prompt="stop?['yes'/'no']", timeout=60)
             if user_input == 'yes':
                 break
         except Exception:
-            # get measurements from all modbus slaves
-            measurements_list = get_all_measurements(device_parameters, serial_client)
-            print(measurements_list)
-            # write the measurements in its corresponding file
-            write_all_measurements_to_csv(res_files_names, measurements_list)
+            try:
+                # get measurements from all modbus slaves
+                measurements_list = get_all_measurements(device_parameters, serial_client)
+                print(measurements_list)
+                # write the measurements in its corresponding file
+                write_all_measurements_to_csv(res_files_names, measurements_list)
+                # report the elapsed time since the script started
+                end_time = time.time()
+                print("Time since script started:", start_time - end_time)
+            except Exception as exc:
+                print("Something went wrong!!!")
+                # report the elapsed time since the script started
+                end_time = time.time()
+                print("Time since script started:", start_time - end_time)
+                raise(exc)
+            finally:
+                continue
 
 
 

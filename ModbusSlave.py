@@ -25,7 +25,8 @@ class ModbusSlave:
             byte_endian = Endian.LITTLE
         
         else:
-            print("Failed to set up decoder")
+            print(f"Failed to set up decoder for device with address: {self.dev_addr}")
+            self.decoder = None
             return
                 
         if self.wordorder == "big":
@@ -35,13 +36,16 @@ class ModbusSlave:
             word_endian = Endian.LITTLE
 
         else:
-            print("Failed to set up decoder")
+            print(f"Failed to set up decoder for device with address: {self.dev_addr}")
+            self.decoder = None
             return
+        
         if self.registers == []:
-            print("No payload to decode")
+            print(f"No payload to set up a decoder for device with address: {self.dev_addr}")
             self.decoder = None
         else:
             self.decoder = BinaryPayloadDecoder.fromRegisters(self.registers, byteorder=byte_endian, wordorder=word_endian)
+        
         return self.decoder
     
 
@@ -71,13 +75,17 @@ class ModbusSlave:
 
     def decode_registers(self, decoding_function):
         if self.decoder == None:
+            print(f"No decoder buffer found for device with address: {self.dev_addr}")
             self.decoded_payload = []
             return self.decoded_payload
         else:
-            try:
-                self.decoded_payload = decoding_function(self.decoder)
-            except:
-                print(f"All register from device with address: {self.dev_addr} decoded.")
+            if decoding_function:
+                try:
+                    self.decoded_payload = decoding_function(self.decoder)
+                except:
+                    print(f"All register from device with address: {self.dev_addr} decoded.")
+            else:
+                print("Unvalid decoding function")
                 
             return self.decoded_payload
     
@@ -90,7 +98,7 @@ class ModbusSlave:
             self.measurements[self.dev_addr] = self.measurements.get(self.dev_addr, self.decoded_payload)
 
         except Exception:
-            print("failed to get measurements")
+            print("Failed to get measurements")
             raise Exception
         
         return self.measurements
