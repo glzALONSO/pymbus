@@ -17,6 +17,7 @@ class ModbusSlave:
         self.decoded_payload = []
         self.measurements = {}
 
+
     def set_up_decoder(self):
         if self.byteorder == "big":
             byte_endian = Endian.BIG
@@ -51,26 +52,42 @@ class ModbusSlave:
 
     def poll_device(self, start_addr, regs_count):
         try:
-            response = self.client.read_holding_registers(address=start_addr, count=regs_count, slave=self.dev_addr)
+            connected = self.client.connect()
+            if connected:
+                print("Connection ESTABLISHED")
+                try:
+                    response = self.client.read_holding_registers(address=start_addr, count=regs_count, slave=self.dev_addr)
 
-        except ModbusException as exc:
-            print(f"Received ModbusException({exc}) from library")
-            self.registers = []
-            raise(exc)
+                except ModbusException as exc:
+                    print(f"Received ModbusException({exc}) from library")
+                    self.registers = []
+                    self.client.close()
+                    raise(exc)
         
-        if response.isError():
-            print(f"Received Modbus library error({response})")
-            self.registers = []
+                if response.isError():
+                    print(f"Received Modbus library error({response})")
+                    self.registers = []
+                    self.client.close()
 
-        elif isinstance(response, ExceptionResponse):
-            print(f"Received Modbus library exception ({response})")
-            self.registers = []
-            # THIS IS NOT A PYTHON EXCEPTION, but a valid modbus message
+                elif isinstance(response, ExceptionResponse):
+                    print(f"Received Modbus library exception ({response})")
+                    self.registers = []
+                    self.client.close()
+                    # THIS IS NOT A PYTHON EXCEPTION, but a valid modbus message
 
-        else:
-            self.registers = response.registers
+                else:
+                    self.registers = response.registers
+                    self.client.close()
+
+                return self.registers
             
-        return self.registers
+        except Exception as exc:
+            print("Connection failed")
+            print(f"Received Exception: {exc}")
+            self.client.close()
+            self.registers = []
+            return self.registers
+
 
 
     def decode_registers(self, decoding_function):
