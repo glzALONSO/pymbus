@@ -54,12 +54,13 @@ class ModbusSlave:
         try:
             connected = self.client.connect()
             if connected:
-                print("Connection ESTABLISHED")
+                print(f"Connection to dev with address: {self.dev_addr} ESTABLISHED.")
+                print(f"Reading registers from {start_addr} to {start_addr + regs_count}")
                 try:
                     response = self.client.read_holding_registers(address=start_addr, count=regs_count, slave=self.dev_addr)
 
                 except ModbusException as exc:
-                    print(f"Received ModbusException({exc}) from library")
+                    print(f"Received ModbusException({exc}) from library") 
                     self.registers = []
                     self.client.close()
                     raise(exc)
