@@ -121,20 +121,25 @@ def create_csv_file(file_name, address, header):
 # file is a string
 # measurements is a list of ints
 def write_to_csv(file, measurements):
-    try:
-        print(f"Opening {file}...")
-        # Open the file in append mode
-        with open(f"{file}", "a") as csv_file:
-            # List of ints ---> list of strings
-            meas_str = map(str, measurements)
-            separator = ", "
-            line = separator.join(meas_str)
-            #print(line)
-            csv_file.write(f"{line}\n")
-        print("Measurements written")
-    except:
-        print(f"Cannot open {file}...")
-        raise(Exception)
+    # check if the measurements list is empty
+    if not measurements:
+        print("No measurements to be written...")
+    # if its not empty writte its contents in the file
+    else:
+        try:
+            print(f"Opening {file}...")
+            # Open the file in append mode
+            with open(f"{file}", "a") as csv_file:
+                # List of ints ---> list of strings
+                meas_str = map(str, measurements)
+                separator = ", "
+                line = separator.join(meas_str)
+                #print(line)
+                csv_file.write(f"{line}\n")
+            print("Measurements written")
+        except:
+            print(f"Cannot open {file}...")
+            raise(Exception)
 
 
 # Create csv files based on the device_parameters dict    
@@ -303,7 +308,7 @@ if __name__ == "__main__":
                 print("Something went wrong!!!")
                 # report the elapsed time since the script started
                 end_time = time.time()
-                print("Time since script started:", start_time - end_time)
+                print("Time since script started:", end_time - start_time)
                 raise(exc)
             finally:
                 continue
