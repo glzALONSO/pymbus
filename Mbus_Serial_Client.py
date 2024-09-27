@@ -286,7 +286,7 @@ if __name__ == "__main__":
     write_all_measurements_to_csv(res_files_names, measurements_list)
     # report the elapsed time since the script started
     end_time = time.time()
-    print("Time since script started:", start_time - end_time)
+    print("Time since script started:", end_time - start_time)
     
 
     while True:
@@ -303,7 +303,7 @@ if __name__ == "__main__":
                 write_all_measurements_to_csv(res_files_names, measurements_list)
                 # report the elapsed time since the script started
                 end_time = time.time()
-                print("Time since script started:", start_time - end_time)
+                print("Time since script started:", end_time - start_time)
             except Exception as exc:
                 print("Something went wrong!!!")
                 # report the elapsed time since the script started
